@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="src" path="finalproject/comp559W19/src"/>
+	<classpathentry kind="lib" path="finalproject/jars/jogamp-fat.jar"/>
+	<classpathentry kind="lib" path="finalproject/jars/mintools.jar"/>
+	<classpathentry kind="lib" path="finalproject/jars/mtj.jar"/>
+	<classpathentry kind="lib" path="finalproject/jars/slf4j-api-1.7.30.jar"/>
+	<classpathentry kind="lib" path="finalproject/jars/slf4j-simple-1.7.30.jar"/>
+	<classpathentry kind="lib" path="finalproject/jars/vecmath.jar"/>
+	<classpathentry kind="lib" path="finalproject/jars/xuggle-xuggler-5.4.jar"/>
+	<classpathentry kind="output" path="finalproject/bin"/>
+</classpath>

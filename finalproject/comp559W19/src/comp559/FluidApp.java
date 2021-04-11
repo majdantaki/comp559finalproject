@@ -269,22 +269,22 @@ public class FluidApp implements SceneGraphNode, Interactor {
         float cs = colorScale.getFloatValue();
         if ( drawScalars.getValue() ) {
         	int rf = refineFactor.getValue(); //  refine the grid by a factor of 4 ?
-            int R = (N+2) * rf;
-            int low = drawBoundaryCells.getValue() ? 0 : rf;
-            int high = (drawBoundaryCells.getValue() ? N+2 : N+1) * rf;
+            int R = (N) * rf;
+            int low = 0;
+            int high = N * rf;
             if ( drawSmooth.getValue() ) {
             	if ( highQualitySmooth.getValue() ) {
 	                for ( int i = low; i < high; i++ ) {                    
 	                    gl.glBegin( GL2.GL_QUAD_STRIP );                    
 	                    for ( int j = low; j <= high; j++ ) {
-	                        x.x = ((float)i)/R * (N+2) * dx;
-	                        x.y = ((float)j)/R * (N+2) * dx;
+	                        x.x = ((float)i)/R * (N) * dx;
+	                        x.y = ((float)j)/R * (N) * dx;
 	                        
 	                        float s = fluid.interpolate(x, S) * cs;
 	                       
 	                        gl.glColor3d( s>0?s:0, 0.125, s<0?-s:0 );
 	                        gl.glVertex2d( x.x, x.y );
-	                        x.x = ((float)(i+1))/R * (N+2) * dx;
+	                        x.x = ((float)(i+1))/R * (N) * dx;
 	                        s = fluid.interpolate(x, S) * cs;
 	                        gl.glColor3d( s>0?s:0, 0.125 ,s<0?-s:0 );
 	                        gl.glVertex2d( x.x, x.y );
@@ -314,8 +314,8 @@ public class FluidApp implements SceneGraphNode, Interactor {
             } else {
                 gl.glPointSize(3);
                 gl.glBegin( GL.GL_POINTS  );
-                for ( int i = 0; i <= N+1; i++ ) {                                    
-                    for ( int j = 0; j <= N+1; j++ ) {
+                for ( int i = 0; i < N; i++ ) {                                    
+                    for ( int j = 0; j < N; j++ ) {
                         double s = S[fluid.IX(i,j)] * cs;
                         gl.glColor3d( s>0?s:0, 0.25, s<0?-s:0 );
                         x.x = (i + 0.5f) * dx;
@@ -332,37 +332,37 @@ public class FluidApp implements SceneGraphNode, Interactor {
             gl.glDisable( GL2.GL_LIGHTING );        
             gl.glBegin( GL.GL_LINES );
             gl.glColor3f( 0.2f, 0.2f, 0.2f );
-            for ( int i = 0; i <= N+2; i++ ) {
+            for ( int i = 0; i <= N; i++ ) {
                 gl.glVertex2d( 0, i*dx );
-                gl.glVertex2d( (N+2)*dx, i*dx );
+                gl.glVertex2d( (N)*dx, i*dx );
                 gl.glVertex2d( i*dx, 0 );
-                gl.glVertex2d( i*dx, (N+2)*dx );                
+                gl.glVertex2d( i*dx, (N)*dx );                
             }
             gl.glEnd();
         }
         
         // draw the fluid boundary box 
-        if ( drawBox.getValue() ) {
-            gl.glBegin( GL.GL_LINES );
-            gl.glColor3f( 1, 1, 1 );
-            gl.glVertex2d( dx, 1*dx );
-            gl.glVertex2d( (N+1)*dx, 1*dx );
-            gl.glVertex2d( 1*dx, dx );
-            gl.glVertex2d( 1*dx, (N+1)*dx );
-            gl.glVertex2d( dx, (N+1)*dx );
-            gl.glVertex2d( (N+1)*dx, (N+1)*dx );
-            gl.glVertex2d( (N+1)*dx, dx );
-            gl.glVertex2d( (N+1)*dx, (N+1)*dx );
-            gl.glEnd();
-        }
+//        if ( drawBox.getValue() ) {
+//            gl.glBegin( GL.GL_LINES );
+//            gl.glColor3f( 1, 1, 1 );
+//            gl.glVertex2d( dx, 1*dx );
+//            gl.glVertex2d( (N+1)*dx, 1*dx );
+//            gl.glVertex2d( 1*dx, dx );
+//            gl.glVertex2d( 1*dx, (N+1)*dx );
+//            gl.glVertex2d( dx, (N+1)*dx );
+//            gl.glVertex2d( (N+1)*dx, (N+1)*dx );
+//            gl.glVertex2d( (N+1)*dx, dx );
+//            gl.glVertex2d( (N+1)*dx, (N+1)*dx );
+//            gl.glEnd();
+//        }
         
         // draw the velocities
         double vds = velocityDisplayScale.getValue();        
         if ( drawVelocities.getValue() ) {
             Vector2f pp = new Vector2f();
             Vector2f pv = new Vector2f();
-            for ( int i = 0; i <= N+1; i++ ) {
-                for ( int j = 0; j <= N+1; j++ ) {
+            for ( int i = 0; i < N; i++ ) {
+                for ( int j = 0; j < N; j++ ) {
                     pp.x = (i + 0.5f) * dx;
                     pp.y = (j + 0.5f) * dx;                    
                     fluid.getVelocity(pp, pv);
@@ -504,7 +504,7 @@ public class FluidApp implements SceneGraphNode, Interactor {
         if ( width < height ) {
             v = width;
         }
-        scale = (v - offset*2) / (fluid.dx * (fluid.N+2 ));        
+        scale = (v - offset*2) / (fluid.dx * (fluid.N ));        
     }
     
     private int width;

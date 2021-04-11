@@ -67,7 +67,7 @@ public class Fluid {
         N = Nval.getValue();        
         dx = 1.0f / N; // we choose the domain size here to be 1 unit square!
         
-        int np2s = (N+2)*(N+2);
+        int np2s = (N+1)*(N);
         U0 = new float[2][np2s];
         U1 = new float[2][np2s];
         temperature0 = new float[np2s];
@@ -81,7 +81,13 @@ public class Fluid {
      * @return the index in the flattened array
      */
     public int IX( int i, int j ) {
-        return i*(N+2) + j;
+    	if (i == N) {
+    		return N * N + j;
+    	}
+    	if (j == N) {
+    		return N * N + i;
+    	}
+        return i * N + j;
     }
     
     /**
@@ -95,16 +101,12 @@ public class Fluid {
      */
     public void setBoundary( int b, float[] x ) {
         int i;
-        for ( i=1 ; i<=N; i++ ) {
-            x[IX(0 ,i)]  = b==1  ? -x[IX(1,i)] : x[IX(1,i)];
-            x[IX(N+1,i)] = b==1 ? -x[IX(N,i)] : x[IX(N,i)];
-            x[IX(i,0 )]  = b==2  ? -x[IX(i,1)] : x[IX(i,1)];
-            x[IX(i,N+1)] = b==2 ? -x[IX(i,N)] : x[IX(i,N)];            
+        for ( i=0 ; i<N; i++ ) {
+            x[IX(0 ,i)]  = b==1  ? 0 : x[IX(1,i)];
+            x[IX(N,i)] = b==1 ? 0 : x[IX(N,i)];
+            x[IX(i,0 )]  = b==2  ? 0 : x[IX(i,1)];
+            x[IX(i,N)] = b==2 ? 0 : x[IX(i,N)];            
         }
-        x[IX(0 ,0 )] = 0.5f*(x[IX(1,0 )]+x[IX(0 ,1)]);
-        x[IX(0 ,N+1)] = 0.5f*(x[IX(1,N+1)]+x[IX(0 ,N )]);
-        x[IX(N+1,0 )] = 0.5f*(x[IX(N,0 )]+x[IX(N+1,1)]);
-        x[IX(N+1,N+1)] = 0.5f*(x[IX(N,N+1)]+x[IX(N+1,N )]);
     }
 
     
@@ -124,8 +126,8 @@ public class Fluid {
      * @param vel
      */
     private void getVelocity( Tuple2f x, float[][] U, Tuple2f vel ) {
-        vel.x = interpolate( x, U[0] );
-        vel.y = interpolate( x, U[1] );
+        vel.x = interpolateStaggeredX( x, U[0] );
+        vel.y = interpolateStaggeredY( x, U[1] );
     }
     
     /**
@@ -134,10 +136,88 @@ public class Fluid {
      * @param s grid of quantities
      * @return interpolated value
      */
-    public float interpolate( Tuple2f x, float[] s ) {
+    public float interpolateStaggered( Tuple2f x, float[] s ) {
     	
     	// TODO: Objective 1: implement bilinear interpolation (try to make this code fast!)
-    	if (x.x <= 0.5 * dx || x.x >= 1 + 0.5 * dx || x.y <= 0.5 * dx || x.y >= 1 +0.5 * dx) {
+  	
+    	float edge = N * dx;
+    	
+    	
+    	//xx and xy are corner coordinate with lower x and y
+    	int xx = (int) (x.x * N / edge);
+    	int xy = (int) (x.y * N / edge);
+    	
+    	float xx1 = x.x - (xx) * dx; //x-x1
+    	float xx2 = dx - xx1; //x-x2
+    	
+    	float yy1 = x.y - (xy) * dx; //y-y1
+    	float yy2 = dx - yy1; //y-y2
+    	
+    	if (IX(xx+1, xy+1) == 272) {
+    		edge = N * dx;
+    	}
+    	
+    	float q11 = s[IX(xx, xy)]; 	
+    	float q21 = s[IX(xx+1, xy)];
+    	float q12 = s[IX(xx, xy+1)];
+    	float q22 = s[IX(xx+1, xy+1)];
+    	
+
+    	return ((xx2 * q11 + xx1 * q21) * yy2 + (xx2 * q12 + xx1 * q22) * yy1 
+    			) / (dx * dx);
+    }
+    public float interpolateStaggeredX( Tuple2f x, float[] s ) {
+    	
+    	// TODO: Objective 1: implement bilinear interpolation (try to make this code fast!)
+  	
+    	float edge = N * dx;
+
+    	//xx and xy are corner coordinate with lower x and y
+    	int xx = (int) (x.x * N / edge);
+    	int xy = (int) (x.y * N / edge);
+    	
+    	float xx1 = x.x - (xx) * dx; //x-x1
+    	float xx2 = dx - xx1; //x-x2
+    	
+    	if (IX(xx+1, xy+1) == 272) {
+    		edge = N * dx;
+    	}
+    	
+    	float q11 = s[IX(xx, xy)]; 	
+    	float q21 = s[IX(xx+1, xy)];
+    	
+
+    	return (q11 * xx1 + q21 * xx2) / dx;
+    }
+    public float interpolateStaggeredY( Tuple2f x, float[] s ) {
+    	
+    	// TODO: Objective 1: implement bilinear interpolation (try to make this code fast!)
+  	
+    	float edge = N * dx;
+    	
+    	
+    	//xx and xy are corner coordinate with lower x and y
+    	int xx = (int) (x.x * N / edge);
+    	int xy = (int) (x.y * N / edge);
+    	
+    	
+    	float yy1 = x.y - (xy) * dx; //y-y1
+    	float yy2 = dx - yy1; //y-y2
+    	
+    	if (IX(xx+1, xy+1) == 272) {
+    		edge = N * dx;
+    	}
+    	
+    	float q11 = s[IX(xx, xy)]; 	
+    	float q12 = s[IX(xx, xy+1)];
+    	
+
+    	return (q11 * yy1 + q12 * yy2) / dx;
+    }
+    
+    public float interpolate( Tuple2f x, float[] s) {
+    	
+    	if (x.x < 0.5 * dx || x.x > (N-0.5) * dx || x.y < 0.5 * dx || x.y > (N-0.5) ) {
     		return 0.0f;
     	}
     	
@@ -163,8 +243,8 @@ public class Fluid {
     	float yy2 = dx - yy1; //y-y2
     	
 
-    	return ((xx2 * q11 + xx1 * q21) * yy2 + (xx2 * q12 + xx1 * q22) * yy1 
-    			) / (dx * dx);
+    	return (xx2 * q11 + xx1 * q21) * yy2 + (xx2 * q12 + xx1 * q22) * yy1 ;
+    	
     }
         
     /** 
@@ -193,9 +273,12 @@ public class Fluid {
     	// TODO: Objective 4: Implement the tracing of a particle position in the velocity field.
     	// Use the getVelocity method, which calls the interpolation method (that you need to write)
 
+    	//TODO: Project 1: use getvelocity
+    	Point2f v = new Point2f(0, 0);
+    	getVelocity(x0, U, v);
     	int i = (int)(x0.x * N), j = (int) (x0.y * N);
-    	x1.x = x0.x + h * U[0][IX(i, j)];
-    	x1.y = x0.y + h * U[1][IX(i, j)];
+    	x1.x = x0.x + h * v.x;
+    	x1.y = x0.y + h * v.y;
 
     }
         
@@ -216,15 +299,15 @@ public class Fluid {
     	float a = dt * diff * N * N;
 
     	//warm start
-		for (int i = 1; i <= N; i++) {
-			for (int j = 1; j <= N; j++) {
+		for (int i = 0; i < N; i++) {
+			for (int j = 0; j < N; j++) {
 				S1[IX(i, j)] = S0[IX(i, j)];
 			}
 		}
     	
     	for (int k = 0; k < iterations.getValue(); k++) {
-    		for (int i = 1; i <= N; i++) {
-    			for (int j = 1; j <= N; j++) {
+    		for (int i = 1; i < N - 1; i++) {
+    			for (int j = 1; j < N - 1; j++) {
     				S1[IX(i, j)] = (S0[IX(i,j)] + a * (S1[IX(i-1,j)] + S1[IX(i+1,j)] +  S1[IX(i,j-1)] +  S1[IX(i,j+1)])) / (1+4*a);
     			}
     		}
@@ -252,8 +335,8 @@ public class Fluid {
     	Point2f p1 = new Point2f(0.0f, 0.0f);
     	int i0, i1, j0, j1;
     	
-		for (int i = 1; i <= N; i++) {
-			for (int j = 1; j <= N; j++) {
+		for (int i = 1; i < N - 1; i++) {
+			for (int j = 1; j < N - 1; j++) {
 				p0.x = i*dx;
 				p0.y = j*dx;
 				traceParticle(p0, U, -1*dt, p1);
@@ -261,15 +344,15 @@ public class Fluid {
 		    	if (p1.x < 0.5f * dx) {
 		    		p1.x = 0.5f * dx;
 		    	}
-		    	else if(p1.x > (N+0.5f) * dx) {
-		    		p1.x = ((N+0.5f) * dx);
+		    	else if(p1.x > (N-0.5f) * dx) {
+		    		p1.x = ((N-0.5f) * dx);
 		    	}
 		    	
 		    	if (p1.y < 0.5f * dx) {
 		    		p1.y = 0.5f * dx;
 		    	}
-		    	else if(p1.y > (N+0.5f) * dx) {
-		    		p1.y = ((N+0.5f) * dx);
+		    	else if(p1.y > (N-0.5f) * dx) {
+		    		p1.y = ((N-0.5f) * dx);
 		    	}
 		    	
 		    	i0 = (int) (p1.x * N);
@@ -299,24 +382,26 @@ public class Fluid {
 
     	// TODO: Objective 6: Implement pressure projection on the provided velocity field
     	float h = dx;
-    	float [] div 	= new float[U[0].length];
+    	float [] divX 	= new float[U[0].length];
+    	float [] divY 	= new float[U[0].length];
     	float [] p 		= new float[U[0].length];
 
-		for (int i = 1; i <= N; i++) {
-			for (int j = 1; j <= N; j++) {
-				div[IX(i, j)] = -0.5f * h * (	U[0][IX(i+1,j)] - U[0][IX(i-1,j)]
-											+	U[1][IX(i,j+1)]	- U[1][IX(i,j-1)]);
+		for (int i = 1; i < N - 1; i++) {
+			for (int j = 1; j < N - 1; j++) {
+				divX[IX(i, j)] = -0.5f * h * (	U[0][IX(i+1,j)] + U[0][IX(i-1,j)] + U[0][IX(i,j+1)] + U[0][IX(i,j-1)] - 4 * U[0][IX(i,j)]);
+				divY[IX(i, j)] = -0.5f * h * (	U[1][IX(i+1,j)] + U[1][IX(i-1,j)] + U[1][IX(i,j+1)] + U[1][IX(i,j-1)] - 4 * U[1][IX(i,j)]);
 				p[IX(i, j)] = 0.0f;
 			}
 		}
 
-		setBoundary( 0, div );
+		setBoundary( 0, divX );
+		setBoundary( 0, divY );
 		setBoundary( 0, p );
     	
     	for (int k = 0; k < iterations.getValue(); k++) {
-    		for (int i = 1; i <= N; i++) {
-    			for (int j = 1; j <= N; j++) {
-    				p[IX(i, j)] = (div[IX(i,j)] + p[IX(i-1,j)] + p[IX(i+1,j)] +  p[IX(i,j-1)] +  p[IX(i+1,j+1)]) / 4;
+    		for (int i = 1; i < N - 1; i++) {
+    			for (int j = 1; j < N - 1; j++) {
+    				p[IX(i, j)] = ((divX[IX(i,j)] + divX[IX(i+1,j)] + divY[IX(i,j)] + divY[IX(i,j+1)]) / 4.0f + p[IX(i-1,j)] + p[IX(i+1,j)] +  p[IX(i,j-1)] +  p[IX(i+1,j+1)]) / 4;
     			}
     		}
     		
@@ -324,10 +409,10 @@ public class Fluid {
     		
     	}
 
-		for (int i = 1; i <= N; i++) {
-			for (int j = 1; j <= N; j++) {
-				U[0][IX(i,j)] -= 0.5 * (p[IX(i+1,j)] - p[IX(i-1,j)]) / h;
-				U[1][IX(i,j)] -= 0.5 * (p[IX(i,j+1)] - p[IX(i,j+1)]) / h;
+		for (int i = 1; i < N - 1; i++) {
+			for (int j = 1; j < N - 1; j++) {
+				U[0][IX(i,j)] -= (p[IX(i,j)] - p[IX(i-1,j)]) / h;
+				U[1][IX(i,j)] -= (p[IX(i,j)] - p[IX(i,j-1)]) / h;
 			}
 		}
 		setBoundary( 1, U[0] );
@@ -383,10 +468,17 @@ public class Fluid {
     	float yy1 = xyf - (xy) * dx; //y-y1
     	float yy2 = dx - yy1; //y-y2
     	
-    	S[IX(xx, xy)] += xx2 * yy2 * amountScaled;
-    	S[IX(xx+1, xy)] += xx1 * yy2 * amountScaled;
-    	S[IX(xx, xy+1)] += xx2 * yy1 * amountScaled;
-    	S[IX(xx+1, xy+1)] += xx1 * yy1 * amountScaled;
+    	if (xx >= 0 && xy >= 0)
+    		S[IX(xx, xy)] += xx2 * yy2 * amountScaled;
+    	
+    	if (xx < N - 1)
+    		S[IX(xx+1, xy)] += xx1 * yy2 * amountScaled;
+
+    	if (xy < N - 1)
+        	S[IX(xx, xy+1)] += xx2 * yy1 * amountScaled;
+    	
+    	if (xy < N - 1 && xx < N - 1)
+    		S[IX(xx+1, xy+1)] += xx1 * yy1 * amountScaled;
         	
     }
     
@@ -397,8 +489,8 @@ public class Fluid {
     public double getReferenceTemperature() {
     	int count = 0;
         double referenceTemperature = 0;
-        for ( int i = 1; i <= N; i++ ) {
-            for ( int j = 1; j <= N; j++ ) {
+        for ( int i = 0; i < N; i++ ) {
+            for ( int j = 0; j < N; j++ ) {
                 referenceTemperature += temperature0[IX(i,j)];
                 count++;
             }
@@ -423,8 +515,8 @@ public class Fluid {
         Point2f x = new Point2f(0.0f, 0.0f);
         		
         double refTemp = getReferenceTemperature();
-        for ( int i = 1; i <= N; i++ ) {
-            for ( int j = 1; j <= N; j++ ) {
+        for ( int i = 0; i < N; i++ ) {
+            for ( int j = 0; j < N; j++ ) {
             	
             	force.y = (float) (buoyancy.getValue() * dt * (refTemp - temperature0[IX(i,j)]));
             	x.x = i * dx;
