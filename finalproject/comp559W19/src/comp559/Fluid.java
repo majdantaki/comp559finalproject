@@ -211,14 +211,14 @@ public class Fluid {
     
     public float interpolateStaggeredX( Tuple2f x, float[] s ) {
 
-    	if (x.x <= 0.5 * dx || x.x >= 1 + 0.5 * dx || x.y <= 0.5 * dx || x.y >= 1 +0.5 * dx) {
+    	if (x.x <=  dx || x.x >= 1 + 1 * dx || x.y <= dx || x.y >= 1 +1 * dx) {
     		return 0.0f;
     	}
 
     	float edge = N * dx;
     	
     	//account for center vs corner
-    	float xxf = (float) (x.x - 0.5 * dx);
+    	float xxf = (float) (x.x);
     	float xyf = (float) (x.y - 0.5 * dx);
 
     	//xx and xy are corner coordinate with lower x and y
@@ -257,7 +257,7 @@ public class Fluid {
     }
     public float interpolateStaggeredY( Tuple2f x, float[] s ) {
 
-    	if (x.x <= 0.5 * dx || x.x >= 1 + 0.5 * dx || x.y <= 0.5 * dx || x.y >= 1 +0.5 * dx) {
+    	if (x.x <= dx || x.x >= 1 + 1 * dx || x.y <=  dx || x.y >= 1 + dx) {
     		return 0.0f;
     	}
     	
@@ -283,7 +283,7 @@ public class Fluid {
 //    	return (q11 * yy1 + q12 * yy2) / dx;
     	//account for center vs corner
     	float xxf = (float) (x.x - 0.5 * dx);
-    	float xyf = (float) (x.y - 0.5 * dx);
+    	float xyf = (float) (x.y);
     	
     	
     	int xx = (int) (xxf * N / edge);
@@ -445,8 +445,8 @@ public class Fluid {
 
 		for (int i = 1; i <= N; i++) {
 			for (int j = 1; j <= N; j++) {
-				divX[IX(i, j)] = -0.5f * h * (	U[0][IX(i+1,j)] + U[0][IX(i-1,j)] + U[0][IX(i,j+1)] + U[0][IX(i,j-1)] - 4 * U[0][IX(i,j)]);
-				divY[IX(i, j)] = -0.5f * h * (	U[1][IX(i+1,j)] + U[1][IX(i-1,j)] + U[1][IX(i,j+1)] + U[1][IX(i,j-1)] - 4 * U[1][IX(i,j)]);
+				divX[IX(i, j)] = -0.125f * h * (	U[0][IX(i+1,j)] + U[0][IX(i-1,j)] + U[0][IX(i,j+1)] + U[0][IX(i,j-1)] - 4 * U[0][IX(i,j)]);
+				divY[IX(i, j)] = -0.125f * h * (	U[1][IX(i+1,j)] + U[1][IX(i-1,j)] + U[1][IX(i,j+1)] + U[1][IX(i,j-1)] - 4 * U[1][IX(i,j)]);
 				p[IX(i, j)] = 0.0f;
 			}
 		}
@@ -466,14 +466,14 @@ public class Fluid {
     		
     	}
 
-		for (int i = 1; i <= N; i++) {
-			for (int j = 1; j <= N; j++) {
+		for (int i = 1; i <= N+1; i++) {
+			for (int j = 1; j <= N+1; j++) {
 				U[0][IX(i,j)] -= (p[IX(i,j)] - p[IX(i-1,j)]) / h;
 				U[1][IX(i,j)] -= (p[IX(i,j)] - p[IX(i,j-1)]) / h;
 			}
 		}
-		setBoundary( 1, U[0] );
-		setBoundary( 2, U[1] );
+		setBoundaryStaggeredX( 1, U[0] );
+		setBoundaryStaggeredY( 2, U[1] );
     	
     }
     

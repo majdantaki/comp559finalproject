@@ -361,8 +361,8 @@ public class FluidApp implements SceneGraphNode, Interactor {
         if ( drawVelocities.getValue() ) {
             Vector2f pp = new Vector2f();
             Vector2f pv = new Vector2f();
-            for ( int i = 0; i <= N+1; i++ ) {
-                for ( int j = 0; j <= N+1; j++ ) {
+            for ( int i = 0; i <= N+2; i++ ) {
+                for ( int j = 0; j <= N+2; j++ ) {
                     pp.x = (i + 0.5f) * dx;
                     pp.y = (j + 0.5f) * dx;                    
                     fluid.getVelocity(pp, pv);
