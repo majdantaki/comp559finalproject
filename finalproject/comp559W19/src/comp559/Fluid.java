@@ -115,9 +115,9 @@ public class Fluid {
         int i;
         for ( i=0 ; i<=N+1; i++ ) {
             x[IX(0 ,i)]  	= 0;
-//            x[IX(1 ,i)]  	= b==1 ? 0 : x[IX(1,i)];
+            x[IX(1 ,i)]  	= 0;
             x[IX(N+1,i)] 	= 0;
-//            x[IX(N+2,i)] 	= b==1 ? 0 : x[IX(N+1,i)];
+            x[IX(N+2,i)] 	= 0;
             x[IX(i,0 )]  	= 0;
             x[IX(i,1 )]  	= 0;
             x[IX(i,N+1)] 	= 0;     
@@ -137,7 +137,9 @@ public class Fluid {
 //            x[IX(N+1,i)] 	= b==1 ? 0 : x[IX(N+1,i)];
 //            x[IX(N+2,i)] 	= b==1 ? 0 : x[IX(N+1,i)];
             x[IX(i,0 )]  	= 0;
+            x[IX(i,1 )]  	= 0;
             x[IX(i,N+1 )]  =  0;
+            x[IX(i,N+2 )]  =  0;
             x[IX(0,i )]  	= 0;
             x[IX(1,i )]  	= 0;
             x[IX(N+1,i)] 	= 0;     
@@ -179,7 +181,7 @@ public class Fluid {
     public float interpolate( Tuple2f x, float[] s ) {
     	
     	// TODO: Objective 1: implement bilinear interpolation (try to make this code fast!)
-    	if (x.x <= 0.5 * dx || x.x >= 1 + 0.5 * dx || x.y <= 0.5 * dx || x.y >= 1 +0.5 * dx) {
+    	if (x.x <= dx || x.x >= 1 +dx || x.y <= dx || x.y >= 1 +dx) {
     		return 0.0f;
     	}
     	
@@ -451,14 +453,15 @@ public class Fluid {
 			}
 		}
 
-		setBoundary( 0, divX );
-		setBoundary( 0, divY );
+		setBoundaryStaggeredX( 0, divX );
+		setBoundaryStaggeredY( 0, divY );
 		setBoundary( 0, p );
     	
     	for (int k = 0; k < iterations.getValue(); k++) {
     		for (int i = 1; i <= N; i++) {
     			for (int j = 1; j <= N; j++) {
-    				p[IX(i, j)] = ((divX[IX(i,j)] + divX[IX(i+1,j)] + divY[IX(i,j)] + divY[IX(i,j+1)]) / 4.0f + p[IX(i-1,j)] + p[IX(i+1,j)] +  p[IX(i,j-1)] +  p[IX(i+1,j+1)]) / 4;
+//    				p[IX(i, j)] = ((divX[IX(i,j)] + divX[IX(i+1,j)] + divY[IX(i,j)] + divY[IX(i,j+1)]) / 4.0f + p[IX(i-1,j)] + p[IX(i+1,j)] +  p[IX(i,j-1)] +  p[IX(i+1,j+1)]) / 4;
+    				p[IX(i, j)] = ((divX[IX(i,j)] - divX[IX(i+1,j)] + divY[IX(i,j)] - divY[IX(i,j+1)]) + p[IX(i-1,j)] + p[IX(i+1,j)] +  p[IX(i,j-1)] +  p[IX(i+1,j+1)]) / 4;
     			}
     		}
     		
@@ -504,7 +507,7 @@ public class Fluid {
     	// Note that this is used by mouse interaction and temperature forces on the velocity field (through addForce)
     	// as well as for heat sources and sinks (i.e., user created points in the grid).
 
-    	if (x.x < 0 || x.x > 1 || x.y <0 || x.y > 1) {
+    	if (x.x < dx || x.x > 1 + dx || x.y < dx || x.y > 1 + dx) {
     		return ;
     	}
     	
@@ -574,8 +577,8 @@ public class Fluid {
             	addForce(U, dt, x, force);
             }
         }
-		setBoundary( 1, U[0] );
-		setBoundary( 2, U[1] );
+        setBoundaryStaggeredX( 1, U[0] );
+        setBoundaryStaggeredY( 2, U[1] );
     }
     
     /** Worker variables for mouse interaction */
