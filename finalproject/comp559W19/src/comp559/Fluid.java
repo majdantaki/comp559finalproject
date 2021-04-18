@@ -43,13 +43,16 @@ public class Fluid {
     /** temperature (packed) temporary variable*/
     private float[] temperature1;
     
-    private IntParameter Nval = new IntParameter( "grid size", 16, 4, 256 );
+    private IntParameter Nval = new IntParameter( "grid size X", 16, 4, 256 );
+    private IntParameter Mval = new IntParameter( "grid size Y", 16, 4, 256 );
     
     /** Number of grid cells (not counting extra boundary cells */
     public int N = 16;
+    public int M = 16;
     
     /** Dimension of each grid cell */
     public float dx = 1;
+    public float dy = 1;
     
     /** time elapsed in the fluid simulation */
     public double elapsed;
@@ -64,12 +67,14 @@ public class Fluid {
      */
     public void setup() {
         elapsed = 0;
-        N = Nval.getValue();        
-        dx = 1.0f / N; // we choose the domain size here to be 1 unit square!
+        N = Nval.getValue();  
+        M = Mval.getValue();        
+        dx = 1.0f / N; // we choose the domain size here to be 1 unit square!       
+        dy = 1.0f / M; 
         
-        int np2s = (N+2)*(N+2);
-        U0 = new float[2][np2s + N + 2];
-        U1 = new float[2][np2s + N + 2];
+        int np2s = (N+2)*(M+2);
+        U0 = new float[2][np2s + (M > N ? M : N) + 2];
+        U1 = new float[2][np2s + (M > N ? M : N) + 2];
         temperature0 = new float[np2s];
         temperature1 = new float[np2s];
     }
@@ -81,11 +86,14 @@ public class Fluid {
      * @return the index in the flattened array
      */
     public int IX( int i, int j ) {
-    	if (j == N+2) {
-    		//N^2 + i
-    		return j * j + i;
+    	if (i == N+2) {
+    		//M^2 + i
+    		return (M+2) * (N+2) + j;
     	}
-        return i*(N+2) + j;
+    	else if(j == M+2) {
+    		return (M+2) * (N+2) + i;
+    	}
+        return j*(N+2) + i;
     }
     
     /**
@@ -99,29 +107,33 @@ public class Fluid {
      */
     public void setBoundary( int b, float[] x ) {
         int i;
-        for ( i=1 ; i<=N; i++ ) {
+        for ( i=1 ; i<=M; i++ ) {
             x[IX(0 ,i)]  = b==1  ? -x[IX(1,i)] : x[IX(1,i)];
-            x[IX(N+1,i)] = b==1 ? -x[IX(N,i)] : x[IX(N,i)];
-            x[IX(i,0 )]  = b==2  ? -x[IX(i,1)] : x[IX(i,1)];
-            x[IX(i,N+1)] = b==2 ? -x[IX(i,N)] : x[IX(i,N)];            
+            x[IX(N+1,i)] = b==1 ? -x[IX(N,i)] : x[IX(N,i)];        
         }
+        for ( i=1 ; i<=N; i++ ) {
+	        x[IX(i,0 )]  = b==2  ? -x[IX(i,1)] : x[IX(i,1)];
+	        x[IX(i,M+1)] = b==2 ? -x[IX(i,M)] : x[IX(i,M)];     
+        }   
         x[IX(0 ,0 )] = 0.5f*(x[IX(1,0 )]+x[IX(0 ,1)]);
-        x[IX(0 ,N+1)] = 0.5f*(x[IX(1,N+1)]+x[IX(0 ,N )]);
+        x[IX(0 ,M+1)] = 0.5f*(x[IX(1,M+1)]+x[IX(0 ,M )]);
         x[IX(N+1,0 )] = 0.5f*(x[IX(N,0 )]+x[IX(N+1,1)]);
-        x[IX(N+1,N+1)] = 0.5f*(x[IX(N,N+1)]+x[IX(N+1,N )]);
+        x[IX(N+1,M+1)] = 0.5f*(x[IX(N,M+1)]+x[IX(N+1,M )]);
     }
     
     public void setBoundaryStaggeredX( int b, float[] x ) {
         int i;
         for ( i=0 ; i<=N+1; i++ ) {
-            x[IX(0 ,i)]  	= 0;
-            x[IX(1 ,i)]  	= 0;
-            x[IX(N+1,i)] 	= 0;
-            x[IX(N+2,i)] 	= 0;
             x[IX(i,0 )]  	= 0;
             x[IX(i,1 )]  	= 0;
-            x[IX(i,N+1)] 	= 0;     
-            x[IX(i,N+2)] 	= 0;           
+            x[IX(i,M+1)] 	= 0;     
+            x[IX(i,M+2)] 	= 0;           
+        }
+        for ( i=0 ; i<=M+1; i++ ) {
+	        x[IX(0 ,i)]  	= 0;
+	        x[IX(1 ,i)]  	= 0;
+	        x[IX(N+1,i)] 	= 0;
+	        x[IX(N+2,i)] 	= 0;
         }
 //        x[IX(0 ,0 )] = 0.5f*(x[IX(1,0 )]+x[IX(0 ,1)]);
 //        x[IX(0 ,N+2)] = 0.5f*(x[IX(1,N+2)]+x[IX(0 ,N+1)]);
@@ -138,12 +150,14 @@ public class Fluid {
 //            x[IX(N+2,i)] 	= b==1 ? 0 : x[IX(N+1,i)];
             x[IX(i,0 )]  	= 0;
             x[IX(i,1 )]  	= 0;
-            x[IX(i,N+1 )]  =  0;
-            x[IX(i,N+2 )]  =  0;
+            x[IX(i,M+1 )]  =  0;
+            x[IX(i,M+2 )]  =  0;           
+        }
+        for ( i=0 ; i<=M+1; i++ ) {
             x[IX(0,i )]  	= 0;
             x[IX(1,i )]  	= 0;
             x[IX(N+1,i)] 	= 0;     
-            x[IX(N+2,i)] 	= 0;           
+            x[IX(N+2,i)] 	= 0;
         }
 //        x[IX(0 ,0 )] = 0.5f*(x[IX(1,0 )]+x[IX(0 ,1)]);
 //        x[IX(0 ,N+2)] = 0.5f*(x[IX(1,N+2)]+x[IX(0 ,N+1)]);
@@ -181,7 +195,7 @@ public class Fluid {
     public float interpolate( Tuple2f x, float[] s ) {
     	
     	// TODO: Objective 1: implement bilinear interpolation (try to make this code fast!)
-    	if (x.x <= dx || x.x >= 1 +dx || x.y <= dx || x.y >= 1 +dx) {
+    	if (x.x <= dx || x.x >= 1 +dx || x.y <= dy || x.y >= 1 +dy) {
     		return 0.0f;
     	}
     	
@@ -193,7 +207,7 @@ public class Fluid {
     	
     	//xx and xy are corner coordinate with lower x and y
     	int xx = (int) (xxf * N / edge);
-    	int xy = (int) (xyf * N / edge);
+    	int xy = (int) (xyf * M / edge);
     	
     	float q11 = s[IX(xx, xy)];
     	float q21 = s[IX(xx+1, xy)];
@@ -203,17 +217,17 @@ public class Fluid {
     	float xx1 = xxf - (xx) * dx; //x-x1
     	float xx2 = dx - xx1; //x-x2
     	
-    	float yy1 = xyf - (xy) * dx; //y-y1
-    	float yy2 = dx - yy1; //y-y2
+    	float yy1 = xyf - (xy) * dy; //y-y1
+    	float yy2 = dy - yy1; //y-y2
     	
 
     	return ((xx2 * q11 + xx1 * q21) * yy2 + (xx2 * q12 + xx1 * q22) * yy1 
-    			) / (dx * dx);
+    			) / (dx * dy);
     }
     
     public float interpolateStaggeredX( Tuple2f x, float[] s ) {
 
-    	if (x.x <=  dx || x.x >= 1 + 1 * dx || x.y <= dx || x.y >= 1 +1 * dx) {
+    	if (x.x <=  dx || x.x >= 1 + 1 * dx || x.y <= dy || x.y >= 1 +1 * dy) {
     		return 0.0f;
     	}
 
@@ -221,7 +235,7 @@ public class Fluid {
     	
     	//account for center vs corner
     	float xxf = (float) (x.x);
-    	float xyf = (float) (x.y - 0.5 * dx);
+    	float xyf = (float) (x.y - 0.5 * dy);
 
     	//xx and xy are corner coordinate with lower x and y
 //    	int xx = (int) (x.x * N / edge);
@@ -240,7 +254,7 @@ public class Fluid {
 //
 //    	return (q11 * xx1 + q21 * xx2) / dx;
     	int xx = (int) (xxf * N / edge);
-    	int xy = (int) (xyf * N / edge);
+    	int xy = (int) (xyf * M / edge);
     	
     	float q11 = s[IX(xx, xy)];
     	float q21 = s[IX(xx+1, xy)];
@@ -250,16 +264,16 @@ public class Fluid {
     	float xx1 = xxf - (xx) * dx; //x-x1
     	float xx2 = dx - xx1; //x-x2
     	
-    	float yy1 = xyf - (xy) * dx; //y-y1
-    	float yy2 = dx - yy1; //y-y2
+    	float yy1 = xyf - (xy) * dy; //y-y1
+    	float yy2 = dy - yy1; //y-y2
     	
 
     	return ((xx2 * q11 + xx1 * q21) * yy2 + (xx2 * q12 + xx1 * q22) * yy1 
-    			) / (dx * dx);
+    			) / (dx * dy);
     }
     public float interpolateStaggeredY( Tuple2f x, float[] s ) {
 
-    	if (x.x <= dx || x.x >= 1 + 1 * dx || x.y <=  dx || x.y >= 1 + dx) {
+    	if (x.x <= dx || x.x >= 1 + 1 * dx || x.y <=  dy || x.y >= 1 + dy) {
     		return 0.0f;
     	}
     	
@@ -289,7 +303,7 @@ public class Fluid {
     	
     	
     	int xx = (int) (xxf * N / edge);
-    	int xy = (int) (xyf * N / edge);
+    	int xy = (int) (xyf * M / edge);
     	
     	float q11 = s[IX(xx, xy)];
     	float q21 = s[IX(xx+1, xy)];
@@ -299,12 +313,12 @@ public class Fluid {
     	float xx1 = xxf - (xx) * dx; //x-x1
     	float xx2 = dx - xx1; //x-x2
     	
-    	float yy1 = xyf - (xy) * dx; //y-y1
-    	float yy2 = dx - yy1; //y-y2
+    	float yy1 = xyf - (xy) * dy; //y-y1
+    	float yy2 = dy - yy1; //y-y2
     	
 
     	return ((xx2 * q11 + xx1 * q21) * yy2 + (xx2 * q12 + xx1 * q22) * yy1 
-    			) / (dx * dx);
+    			) / (dx * dy);
     }
 
         
@@ -355,18 +369,18 @@ public class Fluid {
     	
     	
     	
-    	float a = dt * diff * N * N;
+    	float a = dt * diff * N * M;
 
     	//warm start
 		for (int i = 1; i <= N; i++) {
-			for (int j = 1; j <= N; j++) {
+			for (int j = 1; j <= M; j++) {
 				S1[IX(i, j)] = S0[IX(i, j)];
 			}
 		}
     	
     	for (int k = 0; k < iterations.getValue(); k++) {
     		for (int i = 1; i <= N; i++) {
-    			for (int j = 1; j <= N; j++) {
+    			for (int j = 1; j <= M; j++) {
     				S1[IX(i, j)] = (S0[IX(i,j)] + a * (S1[IX(i-1,j)] + S1[IX(i+1,j)] +  S1[IX(i,j-1)] +  S1[IX(i,j+1)])) / (1+4*a);
     			}
     		}
@@ -389,15 +403,15 @@ public class Fluid {
         
     	// TODO: Objective 5: Implement implicit advection of quantities by tracing particles backwards in time in the provided velocity field.
     	float s0, t0, s1, t1;
-    	float dt0 = N * dt;
+//    	float dt0 = N * dt;
     	Point2f p0 = new Point2f(0.0f, 0.0f);
     	Point2f p1 = new Point2f(0.0f, 0.0f);
     	int i0, i1, j0, j1;
     	
 		for (int i = 1; i <= N; i++) {
-			for (int j = 1; j <= N; j++) {
+			for (int j = 1; j <= M; j++) {
 				p0.x = i*dx;
-				p0.y = j*dx;
+				p0.y = j*dy;
 				traceParticle(p0, U, -1*dt, p1);
 				
 		    	if (p1.x < 0.5f * dx) {
@@ -407,20 +421,20 @@ public class Fluid {
 		    		p1.x = ((N+0.5f) * dx);
 		    	}
 		    	
-		    	if (p1.y < 0.5f * dx) {
-		    		p1.y = 0.5f * dx;
+		    	if (p1.y < 0.5f * dy) {
+		    		p1.y = 0.5f * dy;
 		    	}
-		    	else if(p1.y > (N+0.5f) * dx) {
-		    		p1.y = ((N+0.5f) * dx);
+		    	else if(p1.y > (M+0.5f) * dy) {
+		    		p1.y = ((M+0.5f) * dy);
 		    	}
 		    	
 		    	i0 = (int) (p1.x * N);
 		    	i1 = i0+1;
-		    	j0 = (int) (p1.y * N);
+		    	j0 = (int) (p1.y * M);
 		    	j1 = j0+1;
 		    	s1 = p1.x/dx-i0;
 		    	s0 = 1-s1;
-		    	t1 = p1.y/dx-j0;
+		    	t1 = p1.y/dy-j0;
 		    	t0 = 1-t1;
 		    	S1[IX(i,j)] = 	s0 * (t0*S0[IX(i0,j0)] + t1*S0[IX(i0,j1)]) +
 		    					s1 * (t0*S0[IX(i1,j0)] + t1*S0[IX(i1,j1)]);
@@ -442,11 +456,11 @@ public class Fluid {
     	// TODO: Objective 6: Implement pressure projection on the provided velocity field
     	float h = dx;
     	float [] divX 	= new float[U[0].length];
-    	float [] divY 	= new float[U[0].length];
+    	float [] divY 	= new float[U[1].length];
     	float [] p 		= new float[U[0].length];
 
 		for (int i = 1; i <= N; i++) {
-			for (int j = 1; j <= N; j++) {
+			for (int j = 1; j <= M; j++) {
 				divX[IX(i, j)] = -0.125f * h * (	U[0][IX(i+1,j)] + U[0][IX(i-1,j)] + U[0][IX(i,j+1)] + U[0][IX(i,j-1)] - 4 * U[0][IX(i,j)]);
 				divY[IX(i, j)] = -0.125f * h * (	U[1][IX(i+1,j)] + U[1][IX(i-1,j)] + U[1][IX(i,j+1)] + U[1][IX(i,j-1)] - 4 * U[1][IX(i,j)]);
 				p[IX(i, j)] = 0.0f;
@@ -459,7 +473,7 @@ public class Fluid {
     	
     	for (int k = 0; k < iterations.getValue(); k++) {
     		for (int i = 1; i <= N; i++) {
-    			for (int j = 1; j <= N; j++) {
+    			for (int j = 1; j <= M; j++) {
 //    				p[IX(i, j)] = ((divX[IX(i,j)] + divX[IX(i+1,j)] + divY[IX(i,j)] + divY[IX(i,j+1)]) / 4.0f + p[IX(i-1,j)] + p[IX(i+1,j)] +  p[IX(i,j-1)] +  p[IX(i+1,j+1)]) / 4;
     				p[IX(i, j)] = ((divX[IX(i,j)] - divX[IX(i+1,j)] + divY[IX(i,j)] - divY[IX(i,j+1)]) + p[IX(i-1,j)] + p[IX(i+1,j)] +  p[IX(i,j-1)] +  p[IX(i+1,j+1)]) / 4;
     			}
@@ -470,9 +484,9 @@ public class Fluid {
     	}
 
 		for (int i = 1; i <= N+1; i++) {
-			for (int j = 1; j <= N+1; j++) {
-				U[0][IX(i,j)] -= (p[IX(i,j)] - p[IX(i-1,j)]) / h;
-				U[1][IX(i,j)] -= (p[IX(i,j)] - p[IX(i,j-1)]) / h;
+			for (int j = 1; j <= M+1; j++) {
+				U[0][IX(i,j)] -= (p[IX(i,j)] - p[IX(i-1,j)]) / dx;
+				U[1][IX(i,j)] -= (p[IX(i,j)] - p[IX(i,j-1)]) / dy;
 			}
 		}
 		setBoundaryStaggeredX( 1, U[0] );
@@ -507,26 +521,26 @@ public class Fluid {
     	// Note that this is used by mouse interaction and temperature forces on the velocity field (through addForce)
     	// as well as for heat sources and sinks (i.e., user created points in the grid).
 
-    	if (x.x < dx || x.x > 1 + dx || x.y < dx || x.y > 1 + dx) {
+    	if (x.x < dx || x.x > 1 + dx || x.y < dy || x.y > 1 + dy) {
     		return ;
     	}
     	
     	float edge = N * dx;
-    	float amountScaled = dt * amount / (dx * dx);
+    	float amountScaled = dt * amount / (dx * dy);
 
     	//account for center vs corner
     	float xxf = (float) (x.x - 0.5 * dx);
-    	float xyf = (float) (x.y - 0.5 * dx);
+    	float xyf = (float) (x.y - 0.5 * dy);
     	
     	//xx and xy are corner coordinate with lower x and y
     	int xx = (int) (xxf * N / edge);
-    	int xy = (int) (xyf * N / edge);
+    	int xy = (int) (xyf * M / edge);
     	
     	float xx1 = xxf - (xx) * dx; //x-x1
     	float xx2 = dx - xx1; //x-x2
     	
-    	float yy1 = xyf - (xy) * dx; //y-y1
-    	float yy2 = dx - yy1; //y-y2
+    	float yy1 = xyf - (xy) * dy; //y-y1
+    	float yy2 = dy - yy1; //y-y2
     	
     	S[IX(xx, xy)] += xx2 * yy2 * amountScaled;
     	S[IX(xx+1, xy)] += xx1 * yy2 * amountScaled;
@@ -543,7 +557,7 @@ public class Fluid {
     	int count = 0;
         double referenceTemperature = 0;
         for ( int i = 1; i <= N; i++ ) {
-            for ( int j = 1; j <= N; j++ ) {
+            for ( int j = 1; j <= M; j++ ) {
                 referenceTemperature += temperature0[IX(i,j)];
                 count++;
             }
@@ -569,11 +583,11 @@ public class Fluid {
         		
         double refTemp = getReferenceTemperature();
         for ( int i = 1; i <= N; i++ ) {
-            for ( int j = 1; j <= N; j++ ) {
+            for ( int j = 1; j <= M; j++ ) {
             	
             	force.y = (float) (buoyancy.getValue() * dt * (refTemp - temperature0[IX(i,j)]));
             	x.x = i * dx;
-            	x.y = j * dx;
+            	x.y = j * dy;
             	addForce(U, dt, x, force);
             }
         }
@@ -708,6 +722,7 @@ public class Fluid {
         VerticalFlowPanel vfp2 = new VerticalFlowPanel();
         vfp2.setBorder(new TitledBorder("Fluid solver properties"));
         vfp2.add( Nval.getSliderControls() );
+        vfp2.add( Mval.getSliderControls() );
         vfp2.add( timeStepSize.getSliderControls(true ) ); 
         vfp2.add( iterations.getSliderControls() );
         vfp.add( vfp2.getPanel() );
