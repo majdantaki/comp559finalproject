@@ -45,6 +45,8 @@ public class Fluid {
     
     private IntParameter Nval = new IntParameter( "grid size X", 16, 4, 256 );
     private IntParameter Mval = new IntParameter( "grid size Y", 16, 4, 256 );
+    private DoubleParameter sizeX = new DoubleParameter( "Domain size X", 1, 1, 10 );
+    private DoubleParameter sizeY = new DoubleParameter( "Domain size Y", 1, 1, 10 );
     
     /** Number of grid cells (not counting extra boundary cells */
     public int N = 16;
@@ -53,6 +55,9 @@ public class Fluid {
     /** Dimension of each grid cell */
     public float dx = 1;
     public float dy = 1;
+    
+    public float domainSizeX = 3.0f;
+    public float domainSizeY = 1.0f;
     
     /** time elapsed in the fluid simulation */
     public double elapsed;
@@ -67,10 +72,12 @@ public class Fluid {
      */
     public void setup() {
         elapsed = 0;
+        domainSizeX = sizeX.getFloatValue();
+        domainSizeY = sizeY.getFloatValue();
         N = Nval.getValue();  
         M = Mval.getValue();        
-        dx = 1.0f / N; // we choose the domain size here to be 1 unit square!       
-        dy = 1.0f / M; 
+        dx = domainSizeX / N; // we choose the domain size here to be 1 unit square!       
+        dy = domainSizeY / M; 
         
         int np2s = (N+2)*(M+2);
         U0 = new float[2][np2s + (M > N ? M : N) + 2];
@@ -195,19 +202,24 @@ public class Fluid {
     public float interpolate( Tuple2f x, float[] s ) {
     	
     	// TODO: Objective 1: implement bilinear interpolation (try to make this code fast!)
-    	if (x.x <= dx || x.x >= 1 +dx || x.y <= dy || x.y >= 1 +dy) {
+    	if (x.x <= dx || x.x >= domainSizeX +dx || x.y <= dy || x.y >= domainSizeY +dy) {
     		return 0.0f;
     	}
     	
-    	float edge = N * dx;
+    	float edgeX = N * dx;
+    	float edgeY = M * dy;
     	
     	//account for center vs corner
     	float xxf = (float) (x.x - 0.5 * dx);
-    	float xyf = (float) (x.y - 0.5 * dx);
+    	float xyf = (float) (x.y - 0.5 * dy);
     	
     	//xx and xy are corner coordinate with lower x and y
-    	int xx = (int) (xxf * N / edge);
-    	int xy = (int) (xyf * M / edge);
+    	int xx = (int) (xxf * N / edgeX);
+    	int xy = (int) (xyf * M / edgeY);
+    	
+    	if(IX(xx, xy) < 0) {
+    		System.out.println("h");
+    	}
     	
     	float q11 = s[IX(xx, xy)];
     	float q21 = s[IX(xx+1, xy)];
@@ -227,11 +239,12 @@ public class Fluid {
     
     public float interpolateStaggeredX( Tuple2f x, float[] s ) {
 
-    	if (x.x <=  dx || x.x >= 1 + 1 * dx || x.y <= dy || x.y >= 1 +1 * dy) {
+    	if (x.x <=  dx || x.x >= domainSizeX + dx || x.y <= dy || x.y >= domainSizeY + dy) {
     		return 0.0f;
     	}
 
-    	float edge = N * dx;
+    	float edgeX = N * dx;
+    	float edgeY = M * dy;
     	
     	//account for center vs corner
     	float xxf = (float) (x.x);
@@ -253,8 +266,8 @@ public class Fluid {
 //
 //
 //    	return (q11 * xx1 + q21 * xx2) / dx;
-    	int xx = (int) (xxf * N / edge);
-    	int xy = (int) (xyf * M / edge);
+    	int xx = (int) (xxf * N / edgeX);
+    	int xy = (int) (xyf * M / edgeY);
     	
     	float q11 = s[IX(xx, xy)];
     	float q21 = s[IX(xx+1, xy)];
@@ -273,11 +286,12 @@ public class Fluid {
     }
     public float interpolateStaggeredY( Tuple2f x, float[] s ) {
 
-    	if (x.x <= dx || x.x >= 1 + 1 * dx || x.y <=  dy || x.y >= 1 + dy) {
+    	if (x.x <= dx || x.x >= domainSizeX + dx || x.y <=  dy || x.y >= domainSizeY + dy) {
     		return 0.0f;
     	}
-    	
-    	float edge = N * dx;
+
+    	float edgeX = N * dx;
+    	float edgeY = M * dy;
 
 
     	//xx and xy are corner coordinate with lower x and y
@@ -302,8 +316,8 @@ public class Fluid {
     	float xyf = (float) (x.y);
     	
     	
-    	int xx = (int) (xxf * N / edge);
-    	int xy = (int) (xyf * M / edge);
+    	int xx = (int) (xxf * N / edgeX);
+    	int xy = (int) (xyf * M / edgeY);
     	
     	float q11 = s[IX(xx, xy)];
     	float q21 = s[IX(xx+1, xy)];
@@ -428,9 +442,9 @@ public class Fluid {
 		    		p1.y = ((M+0.5f) * dy);
 		    	}
 		    	
-		    	i0 = (int) (p1.x * N);
+		    	i0 = (int) (p1.x * N / domainSizeX);
 		    	i1 = i0+1;
-		    	j0 = (int) (p1.y * M);
+		    	j0 = (int) (p1.y * M / domainSizeY);
 		    	j1 = j0+1;
 		    	s1 = p1.x/dx-i0;
 		    	s0 = 1-s1;
@@ -454,15 +468,14 @@ public class Fluid {
     private void project( float[][] U ) {    
 
     	// TODO: Objective 6: Implement pressure projection on the provided velocity field
-    	float h = dx;
     	float [] divX 	= new float[U[0].length];
     	float [] divY 	= new float[U[1].length];
     	float [] p 		= new float[U[0].length];
 
 		for (int i = 1; i <= N; i++) {
 			for (int j = 1; j <= M; j++) {
-				divX[IX(i, j)] = -0.125f * h * (	U[0][IX(i+1,j)] + U[0][IX(i-1,j)] + U[0][IX(i,j+1)] + U[0][IX(i,j-1)] - 4 * U[0][IX(i,j)]);
-				divY[IX(i, j)] = -0.125f * h * (	U[1][IX(i+1,j)] + U[1][IX(i-1,j)] + U[1][IX(i,j+1)] + U[1][IX(i,j-1)] - 4 * U[1][IX(i,j)]);
+				divX[IX(i, j)] = -0.125f * dx * (	U[0][IX(i+1,j)] + U[0][IX(i-1,j)] + U[0][IX(i,j+1)] + U[0][IX(i,j-1)] - 4 * U[0][IX(i,j)]);
+				divY[IX(i, j)] = -0.125f * dy * (	U[1][IX(i+1,j)] + U[1][IX(i-1,j)] + U[1][IX(i,j+1)] + U[1][IX(i,j-1)] - 4 * U[1][IX(i,j)]);
 				p[IX(i, j)] = 0.0f;
 			}
 		}
@@ -521,11 +534,12 @@ public class Fluid {
     	// Note that this is used by mouse interaction and temperature forces on the velocity field (through addForce)
     	// as well as for heat sources and sinks (i.e., user created points in the grid).
 
-    	if (x.x < dx || x.x > 1 + dx || x.y < dy || x.y > 1 + dy) {
+    	if (x.x < dx || x.x > domainSizeX + dx || x.y < dy || x.y > domainSizeY + dy) {
     		return ;
     	}
     	
-    	float edge = N * dx;
+    	float edgeX = N * dx;
+    	float edgeY = M * dy;
     	float amountScaled = dt * amount / (dx * dy);
 
     	//account for center vs corner
@@ -533,8 +547,8 @@ public class Fluid {
     	float xyf = (float) (x.y - 0.5 * dy);
     	
     	//xx and xy are corner coordinate with lower x and y
-    	int xx = (int) (xxf * N / edge);
-    	int xy = (int) (xyf * M / edge);
+    	int xx = (int) (xxf * N / edgeX);
+    	int xy = (int) (xyf * M / edgeY);
     	
     	float xx1 = xxf - (xx) * dx; //x-x1
     	float xx2 = dx - xx1; //x-x2
@@ -625,6 +639,8 @@ public class Fluid {
      * @param x1
      */
     public void setMouseMotionPos( Point2f x0, Point2f x1 ) {
+//    	float ratio = domainSizeX / domainSizeY;
+//        Xprev.set( x0.x/domainSize, x0.y );
         Xprev.set( x0 );
         XVX.set( x1 );
     }
@@ -723,6 +739,8 @@ public class Fluid {
         vfp2.setBorder(new TitledBorder("Fluid solver properties"));
         vfp2.add( Nval.getSliderControls() );
         vfp2.add( Mval.getSliderControls() );
+        vfp2.add( sizeX.getSliderControls(true ) );
+        vfp2.add( sizeY.getSliderControls(true ) );
         vfp2.add( timeStepSize.getSliderControls(true ) ); 
         vfp2.add( iterations.getSliderControls() );
         vfp.add( vfp2.getPanel() );

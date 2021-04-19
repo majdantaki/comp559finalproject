@@ -515,7 +515,7 @@ public class FluidApp implements SceneGraphNode, Interactor {
         if ( width < height ) {
             v = width;
         }
-        scale = (v - offset*2) / (fluid.dx * (fluid.N+2 ));        
+        scale = (v - offset*2) / (fluid.domainSizeX > fluid.domainSizeY ? fluid.dx * (fluid.N+2 ) : fluid.dy * (fluid.M+2 ));        
     }
     
     private int width;

@@ -79,8 +79,8 @@ public class Filament {
                 L.add(new Point2f(i * fluid.dx, x.y));
             }
         } else if ( dir == 1 ) {
-            for (int i = 1; i <= fluid.N + 1; i++) {
-                L.add(new Point2f( x.x, i * fluid.dx));
+            for (int i = 1; i <= fluid.M + 1; i++) {
+                L.add(new Point2f( x.x, i * fluid.dy));
             }
         }
         
@@ -93,7 +93,9 @@ public class Filament {
     public void refineAndAdvect() {
 
         float dx = fluid.dx;
+        float dy = fluid.dy;
         int N = fluid.N;
+        int M = fluid.M;
         float dt = fluid.timeStepSize.getFloatValue();
 
         double thresh = refinementThreshold.getValue();
@@ -124,8 +126,8 @@ public class Filament {
             // clamp the particles to the boundaries
             if (x1.x < dx) x1.x = dx;
             if (x1.x > (N + 1) * dx) x1.x = (N + 1) * dx;
-            if (x1.y < dx) x1.y = dx;
-            if (x1.y > (N + 1) * dx) x1.y = (N + 1) * dx;
+            if (x1.y < dy) x1.y = dy;
+            if (x1.y > (M + 1) * dy) x1.y = (M + 1) * dy;
             x0.set(x1);
         }
         age += dt;
