@@ -190,7 +190,6 @@ public class Fluid {
      */
     public float interpolate( Tuple2f x, float[] s ) {
     	
-    	// TODO: Objective 1: implement bilinear interpolation (try to make this code fast!)
     	if (x.x <= dx || x.x >= domainSizeX +dx || x.y <= dy || x.y >= domainSizeY +dy) {
     		return 0.0f;
     	}
