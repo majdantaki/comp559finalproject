@@ -29,7 +29,7 @@ public class Fluid {
     final static int DIM = 2;
     
     /** 
-     * Velocity, non-staggered, packed (first index is the dimension) 
+     * Velocity, staggered, packed (first index is the dimension) 
      * that is, U[0][IX(0,0)] is the x velocity in the (0,0) grid location.
      * */ 
     public float[][] U0;
@@ -142,19 +142,12 @@ public class Fluid {
 	        x[IX(N+1,i)] 	= 0;
 	        x[IX(N+2,i)] 	= 0;
         }
-//        x[IX(0 ,0 )] = 0.5f*(x[IX(1,0 )]+x[IX(0 ,1)]);
-//        x[IX(0 ,N+2)] = 0.5f*(x[IX(1,N+2)]+x[IX(0 ,N+1)]);
-//        x[IX(N+2,0 )] = 0.5f*(x[IX(N+1,0 )]+x[IX(N+2,1)]);
-//        x[IX(N+2,N+2)] = 0.5f*(x[IX(N+1,N+1)]+x[IX(N+2,N )]);
+
     }
     
     public void setBoundaryStaggeredY( int b, float[] x ) {
         int i;
         for ( i=0 ; i<=N+1; i++ ) {
-//            x[IX(0 ,i)]  	= b==1 ? 0 : x[IX(1,i)];
-//            x[IX(1 ,i)]  	= b==1 ? 0 : x[IX(1,i)];
-//            x[IX(N+1,i)] 	= b==1 ? 0 : x[IX(N+1,i)];
-//            x[IX(N+2,i)] 	= b==1 ? 0 : x[IX(N+1,i)];
             x[IX(i,0 )]  	= 0;
             x[IX(i,1 )]  	= 0;
             x[IX(i,M+1 )]  =  0;
@@ -166,10 +159,6 @@ public class Fluid {
             x[IX(N+1,i)] 	= 0;     
             x[IX(N+2,i)] 	= 0;
         }
-//        x[IX(0 ,0 )] = 0.5f*(x[IX(1,0 )]+x[IX(0 ,1)]);
-//        x[IX(0 ,N+2)] = 0.5f*(x[IX(1,N+2)]+x[IX(0 ,N+1)]);
-//        x[IX(N+2,0 )] = 0.5f*(x[IX(N+1,0 )]+x[IX(N+2,1)]);
-//        x[IX(N+1,N+2)] = 0.5f*(x[IX(N+1,N+1)]+x[IX(N,N+2)]);
     }
 
     
@@ -217,10 +206,6 @@ public class Fluid {
     	int xx = (int) (xxf * N / edgeX);
     	int xy = (int) (xyf * M / edgeY);
     	
-    	if(IX(xx, xy) < 0) {
-    		System.out.println("h");
-    	}
-    	
     	float q11 = s[IX(xx, xy)];
     	float q21 = s[IX(xx+1, xy)];
     	float q12 = s[IX(xx, xy+1)];
@@ -251,21 +236,6 @@ public class Fluid {
     	float xyf = (float) (x.y - 0.5 * dy);
 
     	//xx and xy are corner coordinate with lower x and y
-//    	int xx = (int) (x.x * N / edge);
-//    	int xy = (int) (x.y * N / edge);
-//
-//    	float xx1 = x.x - (xx) * dx; //x-x1
-//    	float xx2 = dx - xx1; //x-x2
-//
-//    	if (IX(xx+1, xy+1) == 272) {
-//    		edge = N * dx;
-//    	}
-//
-//    	float q11 = s[IX(xx, xy)]; 	
-//    	float q21 = s[IX(xx+1, xy)];
-//
-//
-//    	return (q11 * xx1 + q21 * xx2) / dx;
     	int xx = (int) (xxf * N / edgeX);
     	int xy = (int) (xyf * M / edgeY);
     	
@@ -293,25 +263,6 @@ public class Fluid {
     	float edgeX = N * dx;
     	float edgeY = M * dy;
 
-
-    	//xx and xy are corner coordinate with lower x and y
-//    	int xx = (int) (x.x * N / edge);
-//    	int xy = (int) (x.y * N / edge);
-//
-//
-//    	float yy1 = x.y - (xy) * dx; //y-y1
-//    	float yy2 = dx - yy1; //y-y2
-//
-//    	if (IX(xx+1, xy+1) == 272) {
-//    		edge = N * dx;
-//    	}
-//
-//    	float q11 = s[IX(xx, xy)]; 	
-//    	float q12 = s[IX(xx, xy+1)];
-//
-//
-//    	return (q11 * yy1 + q12 * yy2) / dx;
-    	//account for center vs corner
     	float xxf = (float) (x.x - 0.5 * dx);
     	float xyf = (float) (x.y);
     	
@@ -359,7 +310,6 @@ public class Fluid {
      */
     private void traceParticle( Point2f x0, float[][] U, float h, Point2f x1 ) {
 
-    	// TODO: Objective 4: Implement the tracing of a particle position in the velocity field.
     	// Use the getVelocity method, which calls the interpolation method (that you need to write)
 
     	Point2f v = new Point2f(0, 0);
@@ -378,10 +328,6 @@ public class Fluid {
      * @param dt   time step
      */
     private void diffuse( float[] S1, float[] S0, int b, float diff, float dt ) {
-        
-    	// TODO: Objective 3: Implement diffusion on the given grid of quantities
-    	
-    	
     	
     	float a = dt * diff * N * M;
 
@@ -415,9 +361,7 @@ public class Fluid {
      */
 	public void transport( float[] S1, float[] S0, float[][] U, float dt ) {
         
-    	// TODO: Objective 5: Implement implicit advection of quantities by tracing particles backwards in time in the provided velocity field.
     	float s0, t0, s1, t1;
-//    	float dt0 = N * dt;
     	Point2f p0 = new Point2f(0.0f, 0.0f);
     	Point2f p1 = new Point2f(0.0f, 0.0f);
     	int i0, i1, j0, j1;
@@ -467,7 +411,6 @@ public class Fluid {
      */
     private void project( float[][] U ) {    
 
-    	// TODO: Objective 6: Implement pressure projection on the provided velocity field
     	float [] divX 	= new float[U[0].length];
     	float [] divY 	= new float[U[1].length];
     	float [] p 		= new float[U[0].length];
@@ -487,7 +430,6 @@ public class Fluid {
     	for (int k = 0; k < iterations.getValue(); k++) {
     		for (int i = 1; i <= N; i++) {
     			for (int j = 1; j <= M; j++) {
-//    				p[IX(i, j)] = ((divX[IX(i,j)] + divX[IX(i+1,j)] + divY[IX(i,j)] + divY[IX(i,j+1)]) / 4.0f + p[IX(i-1,j)] + p[IX(i+1,j)] +  p[IX(i,j-1)] +  p[IX(i+1,j+1)]) / 4;
     				p[IX(i, j)] = ((divX[IX(i,j)] - divX[IX(i+1,j)] + divY[IX(i,j)] - divY[IX(i,j+1)]) + p[IX(i-1,j)] + p[IX(i+1,j)] +  p[IX(i,j-1)] +  p[IX(i+1,j+1)]) / 4;
     			}
     		}
@@ -528,11 +470,6 @@ public class Fluid {
      * @param amount	amount
      */
     private void addSource( float[] S, float dt, Tuple2f x, float amount ) {
-
-    	// TODO: Objective 2: add a "source" to the provided quantity field.  
-    	// Use bilinear interpolation (similar to your interpolate method) to distribute the amount.
-    	// Note that this is used by mouse interaction and temperature forces on the velocity field (through addForce)
-    	// as well as for heat sources and sinks (i.e., user created points in the grid).
 
     	if (x.x < dx || x.x > domainSizeX + dx || x.y < dy || x.y > domainSizeY + dy) {
     		return ;
@@ -587,11 +524,7 @@ public class Fluid {
      * @param dt
      */
     private void addTemperatureForce( float[][] U, float dt ) {       	
-        double referenceTemperature = getReferenceTemperature();
-        float beta = buoyancy.getFloatValue();
-        
-    	// TODO: Objective 7: change velocities based on the temperature.  Don't forget to set Boundaries after modifying velocities!
-        
+                
         Vector2f force = new Vector2f(0.0f, 0.0f);
         Point2f x = new Point2f(0.0f, 0.0f);
         		
@@ -639,8 +572,6 @@ public class Fluid {
      * @param x1
      */
     public void setMouseMotionPos( Point2f x0, Point2f x1 ) {
-//    	float ratio = domainSizeX / domainSizeY;
-//        Xprev.set( x0.x/domainSize, x0.y );
         Xprev.set( x0 );
         XVX.set( x1 );
     }
